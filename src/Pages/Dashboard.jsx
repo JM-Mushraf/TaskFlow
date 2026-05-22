@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import TaskCard from '../components/TaskCard';
 import './dashboard.css';
 
-export default function Dashboard({ user, tasks, onLogout, onNavigate, onEditTask, onDeleteTask }) {
+export default function Dashboard({ user, tasks, onLogout, onNavigate, onEditTask, onDeleteTask, showNotification, isLoading }) {
   const [filterStatus, setFilterStatus] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -34,7 +34,7 @@ export default function Dashboard({ user, tasks, onLogout, onNavigate, onEditTas
         </div>
         <div className="navbar-center">
           <button 
-            className="nav-button home-btn"
+            className="nav-button home-btn active"
             onClick={() => onNavigate('home')}
           >
             🏠 Home
@@ -111,14 +111,22 @@ export default function Dashboard({ user, tasks, onLogout, onNavigate, onEditTas
         <p className="showing-info">Showing {filteredTasks.length} of {tasks.length} tasks</p>
 
         <div className="tasks-grid">
-          {filteredTasks.map(task => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              onSave={onEditTask}
-              onDelete={() => onDeleteTask(task.id)}
-            />
-          ))}
+          {isLoading ? (
+            <div className="loading-container">
+              <div className="loading-spinner"></div>
+              <p>Fetching tasks from API...</p>
+            </div>
+          ) : (
+            filteredTasks.map(task => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onSave={onEditTask}
+                onDelete={() => onDeleteTask(task.id)}
+                showNotification={showNotification}
+              />
+            ))
+          )}
         </div>
       </div>
     </div>

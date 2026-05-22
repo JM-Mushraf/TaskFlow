@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './taskCard.css';
 
-export default function TaskCard({ task, onSave, onDelete }) {
+export default function TaskCard({ task, onSave, onDelete, showNotification }) {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     title: task.title,
@@ -15,7 +15,27 @@ export default function TaskCard({ task, onSave, onDelete }) {
   };
 
   const handleSave = () => {
-    onSave(task.id, formData);
+    const titleVal = formData.title.trim();
+    const assignedVal = formData.assignedTo.trim();
+
+    if (!titleVal && !assignedVal) {
+      showNotification("Please enter task name and username!");
+      return;
+    }
+    if (!titleVal) {
+      showNotification("Please enter task description!");
+      return;
+    }
+    if (!assignedVal) {
+      showNotification("Please enter username!");
+      return;
+    }
+
+    onSave(task.id, {
+      title: titleVal,
+      status: formData.status,
+      assignedTo: assignedVal
+    });
     setIsEditing(false);
   };
 
@@ -34,12 +54,12 @@ export default function TaskCard({ task, onSave, onDelete }) {
         <div className="task-number">#{task.id} (Editing)</div>
         <div className="edit-field-group">
           <label>TASK NAME</label>
-          <textarea
+          <input
+            type="text"
             name="title"
             value={formData.title}
             onChange={handleChange}
             className="edit-input-field"
-            rows="2"
           />
         </div>
         <div className="edit-field-row">

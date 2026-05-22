@@ -8,10 +8,10 @@ CREATE TABLE Users (
     country VARCHAR(50),
     mobile BIGINT,
 
-    created_on DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_on DATETIME DEFAULT GETUTCDATE(),
     created_by VARCHAR(50),
 
-    updated_on DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_on DATETIME DEFAULT GETUTCDATE(),
     updated_by VARCHAR(50),
 
     is_active BIT DEFAULT 1
@@ -141,3 +141,19 @@ SET is_active = 0,updated_by = 'admin2'
 WHERE user_id = 4;
 
 SELECT * FROM Users;
+
+
+
+
+
+SELECT full_name FROM Users;
+SELECT * FROM Users;
+UPDATE Users set full_name= 'kiran',
+updated_by = 'Mushraf',
+updated_on=GETUTCDATE()
+where full_name = 'tapan';
+
+SELECT COUNT(*) FROM Users;
+
+UPDATE Users set is_active=0,updated_by = 'Mushraf',updated_on=GETUTCDATE()
+WHERE user_id=1;

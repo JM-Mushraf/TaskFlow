@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './addTaskPage.css';
 
-export default function AddTaskPage({ user, onLogout, onNavigate, onAddTask, nextTaskId }) {
+export default function AddTaskPage({ user, onLogout, onNavigate, onAddTask, nextTaskId, showNotification }) {
   const [formData, setFormData] = useState({
     title: '',
     status: 'In Progress',
@@ -15,13 +15,27 @@ export default function AddTaskPage({ user, onLogout, onNavigate, onAddTask, nex
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (formData.title && formData.status) {
-      onAddTask({
-        title: formData.title,
-        status: formData.status,
-        assignedTo: formData.assignedTo || 'Unassigned'
-      });
+    const titleVal = formData.title.trim();
+    const assignedVal = formData.assignedTo.trim();
+
+    if (!titleVal && !assignedVal) {
+      showNotification("Please enter task name and username!");
+      return;
     }
+    if (!titleVal) {
+      showNotification("Please enter task description!");
+      return;
+    }
+    if (!assignedVal) {
+      showNotification("Please enter username!");
+      return;
+    }
+
+    onAddTask({
+      title: titleVal,
+      status: formData.status,
+      assignedTo: assignedVal
+    });
   };
 
   return (
@@ -64,13 +78,13 @@ export default function AddTaskPage({ user, onLogout, onNavigate, onAddTask, nex
         <form onSubmit={handleSubmit} className="add-task-form">
           <div className="form-group">
             <label>TASK NAME *</label>
-            <textarea
+            <input
+              type="text"
               name="title"
               value={formData.title}
               onChange={handleChange}
               placeholder="Describe the task..."
               className="input-field"
-              rows="3"
             />
           </div>
 

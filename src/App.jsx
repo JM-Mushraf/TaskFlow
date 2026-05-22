@@ -12,6 +12,58 @@ export default function App() {
     const saved = localStorage.getItem('tasks');
     return saved ? JSON.parse(saved) : [];
   });
+  const [notification, setNotification] = useState(null);
+  const [notificationTimer, setNotificationTimer] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const showNotification = (message, type = 'error') => {
+    if (notificationTimer) {
+      clearTimeout(notificationTimer);
+    }
+    setNotification({ message, type });
+    const timer = setTimeout(() => {
+      setNotification(null);
+    }, 4000);
+    setNotificationTimer(timer);
+  };
+
+  useEffect(() => {
+    const fetched = localStorage.getItem('tasks_fetched');
+    if (!fetched) {
+      setIsLoading(true);
+      const fetchTasksAndUsers = async () => {
+        try {
+          const [todosRes, usersRes] = await Promise.all([
+            fetch('https://jsonplaceholder.typicode.com/todos'),
+            fetch('https://jsonplaceholder.typicode.com/users')
+          ]);
+          const todos = await todosRes.json();
+          const users = await usersRes.json();
+
+          const userMap = {};
+          users.forEach(u => {
+            userMap[u.id] = u.name;
+          });
+
+          const mapped = todos.map((todo, index) => ({
+            id: index + 1,
+            title: todo.title,
+            status: todo.completed ? 'Completed' : 'In Progress',
+            assignedTo: userMap[todo.userId] || 'Unassigned'
+          }));
+
+          setTasks(mapped);
+          localStorage.setItem('tasks_fetched', 'true');
+        } catch (error) {
+          console.error("Error fetching tasks/users:", error);
+          showNotification("Failed to fetch initial tasks from API.");
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchTasksAndUsers();
+    }
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('tasks', JSON.stringify(tasks));
@@ -31,10 +83,14 @@ export default function App() {
 
   const handleAddTask = (taskData) => {
     const newTask = {
-      id: tasks.length + 1,
+      id: 1,
       ...taskData
     };
-    setTasks([...tasks, newTask]);
+    const updated = [newTask, ...tasks].map((task, index) => ({
+      ...task,
+      id: index + 1
+    }));
+    setTasks(updated);
     setCurrentPage('home');
   };
 
@@ -60,6 +116,15 @@ export default function App() {
 
   return (
     <div className="app">
+      {notification && (
+        <div className={`custom-notification ${notification.type}`}>
+          <span className="notification-icon">
+            {notification.type === 'success' ? '✅' : '⚠️'}
+          </span>
+          <span className="notification-message">{notification.message}</span>
+          <button className="notification-close" onClick={() => setNotification(null)}>✕</button>
+        </div>
+      )}
       {currentPage === 'home' ? (
         <Dashboard 
           user={currentUser}
@@ -68,6 +133,8 @@ export default function App() {
           onNavigate={setCurrentPage}
           onEditTask={handleEditTask}
           onDeleteTask={handleDeleteTask}
+          showNotification={showNotification}
+          isLoading={isLoading}
         />
       ) : (
         <AddTaskPage 
@@ -75,7 +142,8 @@ export default function App() {
           onLogout={handleLogout}
           onNavigate={setCurrentPage}
           onAddTask={handleAddTask}
-          nextTaskId={tasks.length + 1}
+          nextTaskId={1}
+          showNotification={showNotification}
         />
       )}
     </div>
