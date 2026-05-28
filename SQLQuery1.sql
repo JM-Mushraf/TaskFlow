@@ -472,7 +472,7 @@ VALUES
 ('Manan','manan@gmail.com','Canada',9999999993,'admin','admin'),
 ('Kiran','kiran@gmail.com','Australia',9999999994,'admin','admin');
 
--- NORMAL SELECT QUERIES
+
 SELECT
     UserId,
     FullName,
@@ -686,3 +686,268 @@ VALUES
 (2,2,'2026-06-02','2026-07-02','Paid','TXN2002');
 
 EXEC usp_InsertSubscriptions @NewSubscriptions;
+
+
+---Task 4
+
+-- INDEX CREATION
+
+CREATE INDEX IX_tbl_Subscription_UserId
+ON tbl_Subscription(UserId);
+
+
+
+-- USER DEFINED TABLE TYPE FOR BULK INSERT
+CREATE TYPE SubscriptionBulkType AS TABLE
+(
+    UserId INT,
+    PlanId INT,
+    StartDate DATE,
+    EndDate DATE,
+    PaymentStatus VARCHAR(30),
+    TransactionId VARCHAR(100)
+);
+
+
+
+
+-- STORED PROCEDURE FOR BULK INSERT
+
+CREATE PROCEDURE usp_BulkInsertSubscription
+(
+    @SubscriptionData SubscriptionBulkType READONLY
+)
+AS
+BEGIN
+
+    SET NOCOUNT ON;
+
+    BEGIN TRY
+
+        BEGIN TRANSACTION;
+
+        INSERT INTO tbl_Subscription
+        (
+            UserId,
+            PlanId,
+            StartDate,
+            EndDate,
+            PaymentStatus,
+            TransactionId,
+            CreatedBy,
+            UpdatedBy
+        )
+
+        SELECT
+            UserId,
+            PlanId,
+            StartDate,
+            EndDate,
+            PaymentStatus,
+            TransactionId,
+            'admin',
+            'admin'
+
+        FROM @SubscriptionData;
+
+        COMMIT TRANSACTION;
+
+        PRINT 'Bulk data inserted successfully';
+
+    END TRY
+
+    BEGIN CATCH
+
+        ROLLBACK TRANSACTION;
+
+        INSERT INTO tbl_ErrorLog
+        (
+            ErrorMessage,
+            ErrorProcedure,
+            ErrorLine
+        )
+        VALUES
+        (
+            ERROR_MESSAGE(),
+            ERROR_PROCEDURE(),
+            ERROR_LINE()
+        );
+
+        PRINT 'Error occurred while inserting data';
+
+    END CATCH
+
+END;
+
+
+
+-- INSERT BULK SAMPLE DATA
+DECLARE @BulkData SubscriptionBulkType;
+
+
+
+INSERT INTO @BulkData
+(
+    UserId,
+    PlanId,
+    StartDate,
+    EndDate,
+    PaymentStatus,
+    TransactionId
+)
+
+VALUES
+(1,1,'2026-07-01','2026-08-01','Paid','TXN3001'),
+(2,2,'2026-07-02','2026-08-02','Paid','TXN3002'),
+(3,3,'2026-07-03','2026-08-03','Pending','TXN3003'),
+(4,1,'2026-07-04','2026-08-04','Paid','TXN3004'),
+(1,2,'2026-07-05','2026-08-05','Paid','TXN3005'),
+(2,3,'2026-07-06','2026-08-06','Pending','TXN3006'),
+(3,1,'2026-07-07','2026-08-07','Paid','TXN3007'),
+(4,2,'2026-07-08','2026-08-08','Paid','TXN3008'),
+(1,3,'2026-07-09','2026-08-09','Paid','TXN3009'),
+(2,1,'2026-07-10','2026-08-10','Pending','TXN3010'),
+
+(3,2,'2026-07-11','2026-08-11','Paid','TXN3011'),
+(4,3,'2026-07-12','2026-08-12','Paid','TXN3012'),
+(1,1,'2026-07-13','2026-08-13','Pending','TXN3013'),
+(2,2,'2026-07-14','2026-08-14','Paid','TXN3014'),
+(3,3,'2026-07-15','2026-08-15','Paid','TXN3015'),
+(4,1,'2026-07-16','2026-08-16','Pending','TXN3016'),
+(1,2,'2026-07-17','2026-08-17','Paid','TXN3017'),
+(2,3,'2026-07-18','2026-08-18','Paid','TXN3018'),
+(3,1,'2026-07-19','2026-08-19','Pending','TXN3019'),
+(4,2,'2026-07-20','2026-08-20','Paid','TXN3020'),
+(1,3,'2026-07-21','2026-08-21','Paid','TXN3021'),
+(2,1,'2026-07-22','2026-08-22','Pending','TXN3022'),
+(3,2,'2026-07-23','2026-08-23','Paid','TXN3023'),
+(4,3,'2026-07-24','2026-08-24','Paid','TXN3024'),
+(1,1,'2026-07-25','2026-08-25','Pending','TXN3025'),
+(2,2,'2026-07-26','2026-08-26','Paid','TXN3026'),
+(3,3,'2026-07-27','2026-08-27','Paid','TXN3027'),
+(4,1,'2026-07-28','2026-08-28','Pending','TXN3028'),
+(1,2,'2026-07-29','2026-08-29','Paid','TXN3029'),
+(2,3,'2026-07-30','2026-08-30','Paid','TXN3030');
+
+
+
+
+
+-- EXECUTE BULK INSERT PROCEDURE
+EXEC usp_BulkInsertSubscription @BulkData;
+
+
+-- CHECK INSERTED DATA
+SELECT
+    SubscriptionId,
+    UserId,
+    PlanId,
+    PaymentStatus,
+    TransactionId
+FROM tbl_Subscription;
+
+
+
+-- PAGINATION QUERY
+DECLARE @PageNumber INT = 1;
+DECLARE @RowsPerPage INT = 10;
+
+SELECT
+    S.SubscriptionId,
+    U.FullName,
+    P.PlanName,
+    S.PaymentStatus,
+    S.TransactionId,
+
+    COUNT(*) OVER() AS TotalRecords
+
+FROM tbl_Subscription S
+
+INNER JOIN mst_Users U
+ON S.UserId = U.UserId
+
+INNER JOIN mst_Plan P
+ON S.PlanId = P.PlanId
+
+ORDER BY S.SubscriptionId
+
+OFFSET (@PageNumber - 1) * @RowsPerPage ROWS
+FETCH NEXT @RowsPerPage ROWS ONLY;
+
+
+
+
+-- SECOND PAGE
+DECLARE @PageNumber2 INT = 2;
+DECLARE @RowsPerPage2 INT = 10;
+
+SELECT
+    S.SubscriptionId,
+    U.FullName,
+    P.PlanName,
+    S.PaymentStatus,
+    S.TransactionId,
+
+    COUNT(*) OVER() AS TotalRecords
+
+FROM tbl_Subscription S
+
+INNER JOIN mst_Users U
+ON S.UserId = U.UserId
+
+INNER JOIN mst_Plan P
+ON S.PlanId = P.PlanId
+
+ORDER BY S.SubscriptionId
+
+OFFSET (@PageNumber2 - 1) * @RowsPerPage2 ROWS
+FETCH NEXT @RowsPerPage2 ROWS ONLY;
+
+
+
+
+SELECT
+    SubscriptionId,
+    UserId,
+    PaymentStatus,
+    TransactionId
+
+FROM tbl_Subscription
+
+WHERE UserId = 1;
+
+
+
+
+SELECT
+    UserId,
+
+    COUNT(*) AS TotalSubscriptions
+
+FROM tbl_Subscription
+
+GROUP BY UserId;
+
+
+
+-- ACTIVE SUBSCRIPTIONS
+SELECT
+    SubscriptionId,
+    UserId,
+    PaymentStatus
+
+FROM tbl_Subscription
+
+WHERE IsActive = 1;
+
+
+
+-- VIEW ERROR LOGS
+SELECT
+    ErrorLogId,
+    ErrorMessage,
+    ErrorProcedure,
+    ErrorLine,
+    ErrorDate
+
+FROM tbl_ErrorLog;
